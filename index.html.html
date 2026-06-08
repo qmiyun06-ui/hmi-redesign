@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>HMI Studio — IVI Research Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#111113;--s1:#1a1a1e;--s2:#222226;--s3:#2a2a30;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.11);--b3:rgba(255,255,255,0.18);
+  --t1:#f2f2f5;--t2:#8a8a95;--t3:#46464f;
+  --acc:#0a84ff;--ok:#30d158;--warn:#ffd60a;--danger:#ff453a;
+  --music:#bf5af2;--video:#ff6b35;--game:#30d158;
+}
+html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;font-size:14px;cursor:default;}
+
+/* STATUS BAR */
+.sbar{height:40px;background:#000;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid rgba(255,255,255,0.04);flex-shrink:0;}
+.sbar-l{display:flex;align-items:center;gap:24px;}
+.sbar-time{font-size:15px;font-weight:500;letter-spacing:-.3px;}
+.sbar-r{display:flex;align-items:center;gap:20px;}
+.sbar-item{font-size:12px;color:var(--t2);}
+.sbar-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:5px;animation:hb 3s ease-in-out infinite;}
+@keyframes hb{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:88px 1fr 300px;height:1040px;}
+
+/* DOCK */
+.dock{background:#000;border-right:1px solid var(--b1);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:4px;}
+.dock-btn{width:64px;height:64px;border-radius:16px;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--t3);transition:all .18s;font-size:10px;font-family:'Inter',sans-serif;position:relative;}
+.dock-btn:hover{background:var(--s2);color:var(--t2);}
+.dock-btn.active{background:var(--s2);color:var(--t1);}
+.dock-btn.active::before{content:'';position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:3px;height:28px;border-radius:0 3px 3px 0;background:var(--acc);}
+.dock-icon{font-size:24px;line-height:1;}
+.dock-sep{width:40px;height:1px;background:var(--b1);margin:6px 0;}
+
+/* IVI MAIN */
+.ivi-main{display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{height:52px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 24px;gap:0;flex-shrink:0;}
+.tb-tab{height:52px;padding:0 20px;display:flex;align-items:center;gap:7px;font-size:14px;color:var(--t2);border:none;background:none;cursor:pointer;position:relative;transition:color .15s;font-family:'Inter',sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tb-tab:hover{color:var(--t1);}
+.tb-tab.active{color:var(--t1);border-bottom-color:var(--acc);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.vpill{display:flex;background:var(--s2);border-radius:8px;padding:3px;gap:2px;}
+.vp{padding:5px 12px;border-radius:6px;border:none;background:none;color:var(--t2);font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+.vp.active{background:var(--acc);color:#fff;}
+.step-pips{display:flex;gap:4px;align-items:center;}
+.spip{width:24px;height:3px;border-radius:2px;background:var(--b2);transition:background .3s;}
+.spip.done{background:var(--ok);}
+.spip.active{background:var(--acc);}
+
+/* CONTENT AREA */
+.content-area{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ══ MUSIC APP ══ */
+.app-music{flex:1;display:grid;grid-template-columns:300px 1fr;overflow:hidden;}
+.music-left{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+.music-cover-area{padding:20px;flex-shrink:0;}
+.music-art{width:260px;height:260px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:100px;background:linear-gradient(135deg,#3d0f6e,#8b2fc9);box-shadow:0 16px 48px rgba(0,0,0,.6);margin-bottom:16px;}
+.music-now-title{font-size:16px;font-weight:600;color:var(--t1);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.music-now-artist{font-size:13px;color:var(--t2);margin-bottom:14px;}
+.progress-bar{width:100%;height:3px;background:var(--b2);border-radius:2px;margin-bottom:8px;cursor:pointer;position:relative;}
+.progress-fill{height:100%;border-radius:2px;background:var(--acc);transition:width .5s linear;}
+.progress-times{display:flex;justify-content:space-between;font-size:11px;color:var(--t3);margin-bottom:14px;}
+.ctrl-row{display:flex;align-items:center;justify-content:center;gap:14px;}
+.ctrl-btn{width:40px;height:40px;border-radius:50%;border:none;background:none;color:var(--t2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ctrl-btn:hover{background:var(--s2);color:var(--t1);}
+.ctrl-play{width:52px;height:52px;border-radius:50%;border:none;background:var(--acc);color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 4px 20px rgba(10,132,255,.4);}
+.ctrl-play:hover{background:#0070d8;transform:scale(1.05);}
+.vol-row{display:flex;align-items:center;gap:10px;padding:0 0 16px;}
+.vol-icon{font-size:16px;color:var(--t3);}
+.vol-slider{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--b2);outline:none;cursor:pointer;}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--t1);cursor:pointer;}
+
+.music-queue{flex:1;overflow-y:auto;border-top:1px solid var(--b1);}
+.queue-header{padding:14px 16px 8px;font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;}
+.song-row{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;transition:background .12s;border-radius:0;}
+.song-row:hover{background:var(--s2);}
+.song-row.playing{background:rgba(10,132,255,.1);}
+.song-row.target-item{background:rgba(10,132,255,.07);border-left:2px solid rgba(10,132,255,.4);}
+.song-row.correct-flash{background:rgba(48,209,88,.15)!important;border-left:2px solid var(--ok)!important;}
+.song-num{font-size:12px;color:var(--t3);width:20px;text-align:center;flex-shrink:0;}
+.song-num.eq{color:var(--acc);}
+.song-thumb{width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.song-info{flex:1;min-width:0;}
+.song-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.song-artist{font-size:11px;color:var(--t2);}
+.song-dur{font-size:11px;color:var(--t3);flex-shrink:0;}
+.song-heart{font-size:14px;color:var(--t3);cursor:pointer;padding:0 4px;flex-shrink:0;transition:color .15s;}
+.song-heart.liked{color:var(--danger);}
+
+/* Music right: album grid */
+.music-right{overflow-y:auto;padding:24px 28px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:17px;font-weight:600;}
+.section-more{font-size:13px;color:var(--acc);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;}
+.album-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.album-card{cursor:pointer;border-radius:12px;overflow:hidden;background:var(--s1);border:1px solid var(--b1);transition:all .2s;position:relative;}
+.album-card:hover{transform:translateY(-4px);border-color:var(--b2);box-shadow:0 12px 32px rgba(0,0,0,.5);}
+.album-card.playing-album{border-color:var(--acc);box-shadow:0 0 0 2px rgba(10,132,255,.3);}
+.album-art{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:56px;}
+.album-info{padding:12px;}
+.album-title{font-size:13px;font-weight:500;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.album-sub{font-size:11px;color:var(--t2);}
+.playing-badge{position:absolute;top:8px;right:8px;background:var(--acc);border-radius:50%;width:24px;height:24px;display:none;align-items:center;justify-content:center;font-size:11px;}
+.album-card.playing-album .playing-badge{display:flex;}
+
+/* ══ VIDEO APP ══ */
+.app-video{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);}
+.video-browse{flex:1;overflow-y:auto;padding:0;}
+.video-hero{height:340px;position:relative;overflow:hidden;flex-shrink:0;}
+.vh-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:160px;opacity:.12;}
+.vh-grad{position:absolute;inset:0;background:linear-gradient(90deg,rgba(17,17,19,.98) 0%,rgba(17,17,19,.6) 60%,transparent 100%);}
+.vh-content{position:absolute;bottom:36px;left:36px;}
+.vh-badge{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--video);background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.3);padding:3px 10px;border-radius:4px;margin-bottom:10px;display:inline-block;}
+.vh-title{font-size:34px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
+.vh-meta{font-size:13px;color:var(--t2);margin-bottom:18px;}
+.vh-btns{display:flex;gap:8px;}
+.vh-btn{padding:10px 22px;border-radius:8px;border:none;font-size:14px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+.vh-btn.primary{background:#fff;color:#000;}
+.vh-btn.primary:hover{background:#e0e0e0;}
+.vh-btn.ghost{background:rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(4px);}
+.vh-btn.ghost:hover{background:rgba(255,255,255,.25);}
+.video-section{padding:20px 28px 0;}
+.vs-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.vs-more{font-size:13px;color:var(--acc);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;}
+.vrow{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;}
+.vrow::-webkit-scrollbar{height:2px;}
+.vrow::-webkit-scrollbar-thumb{background:var(--b2);}
+.vcard{flex-shrink:0;width:190px;border-radius:10px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:all .2s;background:var(--s1);}
+.vcard:hover{transform:scale(1.04);border-color:var(--b2);}
+.vcard.target-item{border-color:rgba(10,132,255,.4);}
+.vcard.correct-flash{border-color:var(--ok)!important;box-shadow:0 0 0 2px rgba(48,209,88,.3);}
+.vcard-thumb{width:100%;height:110px;display:flex;align-items:center;justify-content:center;font-size:42px;position:relative;}
+.vcard-play-ov{position:absolute;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;font-size:28px;}
+.vcard:hover .vcard-play-ov{display:flex;}
+.vcard-info{padding:10px 12px;}
+.vcard-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vcard-sub{font-size:11px;color:var(--t2);}
+.vcard-prog{height:2px;background:var(--b2);margin-top:6px;border-radius:1px;overflow:hidden;}
+.vcard-prog-fill{height:100%;background:var(--video);border-radius:1px;}
+
+/* Video player modal */
+.video-player{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:50;}
+.video-player.on{display:flex;}
+.vp-screen{flex:1;display:flex;align-items:center;justify-content:center;position:relative;background:#000;cursor:pointer;}
+.vp-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.vp-emoji{font-size:100px;animation:vpbob 2s ease-in-out infinite;}
+@keyframes vpbob{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.vp-title{font-size:20px;font-weight:500;color:rgba(255,255,255,.7);}
+.vp-overlay-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
+.vp-screen:hover .vp-overlay-btn{opacity:1;}
+.vp-pause-icon{width:70px;height:70px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:28px;backdrop-filter:blur(8px);}
+.vp-controls{height:80px;background:rgba(0,0,0,.9);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 24px;gap:16px;border-top:1px solid var(--b1);}
+.vp-time{font-size:12px;color:var(--t2);min-width:80px;font-variant-numeric:tabular-nums;}
+.vp-prog{flex:1;height:3px;background:var(--b2);border-radius:2px;cursor:pointer;position:relative;}
+.vp-prog-fill{height:100%;background:var(--video);border-radius:2px;transition:width .5s linear;}
+.vp-back{background:none;border:none;color:var(--t2);font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;transition:color .15s;}
+.vp-back:hover{color:var(--t1);}
+
+/* ══ GAME APP ══ */
+.app-game{flex:1;overflow-y:auto;padding:0 28px 28px;background:var(--bg);}
+.game-hero{height:260px;border-radius:16px;margin:20px 0 24px;display:flex;align-items:center;padding:32px;position:relative;overflow:hidden;background:linear-gradient(135deg,#0d1a0d 0%,#1a2d1a 60%,#111113 100%);}
+.gh-deco{position:absolute;right:28px;top:50%;transform:translateY(-50%);font-size:130px;opacity:.1;}
+.gh-tag{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--game);text-transform:uppercase;margin-bottom:8px;}
+.gh-title{font-size:34px;font-weight:700;letter-spacing:-.5px;margin-bottom:8px;}
+.gh-desc{font-size:14px;color:var(--t2);margin-bottom:22px;max-width:440px;line-height:1.5;}
+.gh-btn{padding:11px 24px;border-radius:10px;border:none;background:var(--game);color:#000;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+.gh-btn:hover{background:#28c04e;}
+.game-section-title{font-size:16px;font-weight:600;margin-bottom:14px;}
+.game-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px;}
+.gcard{border-radius:12px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:all .2s;background:var(--s1);}
+.gcard:hover{transform:translateY(-5px);border-color:var(--b2);box-shadow:0 12px 32px rgba(0,0,0,.5);}
+.gcard.target-item{border-color:rgba(10,132,255,.4);}
+.gcard.correct-flash{border-color:var(--ok)!important;box-shadow:0 0 0 2px rgba(48,209,88,.3)!important;}
+.gcard-art{width:100%;height:130px;display:flex;align-items:center;justify-content:center;font-size:50px;}
+.gcard-info{padding:10px 12px;}
+.gcard-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gcard-genre{font-size:11px;color:var(--t2);}
+.gcard-stars{font-size:10px;color:var(--warn);margin-top:3px;}
+
+/* Game modal */
+.game-modal{position:absolute;inset:0;background:rgba(0,0,0,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50;gap:16px;}
+.game-modal.on{display:flex;}
+.gm-screen{width:640px;height:400px;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;border:2px solid var(--b2);}
+.gm-title{font-size:22px;font-weight:600;}
+.gm-back{background:none;border:1px solid var(--b2);color:var(--t2);border-radius:20px;padding:8px 20px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+.gm-back:hover{border-color:var(--acc);color:var(--t1);}
+
+/* Cuphead mini game */
+.cup-game{width:100%;height:100%;background:linear-gradient(180deg,#87ceeb 0%,#87ceeb 70%,#228b22 70%);position:relative;overflow:hidden;cursor:none;}
+.cup-char{position:absolute;bottom:80px;font-size:36px;transition:left .1s;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.5));}
+.cup-enemy{position:absolute;bottom:80px;font-size:30px;animation:emove 3s linear infinite;}
+@keyframes emove{from{right:-60px}to{right:120%}}
+.cup-bullet{position:absolute;bottom:100px;font-size:16px;animation:bmove .8s linear forwards;}
+@keyframes bmove{from{opacity:1}to{left:120%;opacity:0}}
+.cup-ground{position:absolute;bottom:0;left:0;right:0;height:80px;background:#8B4513;border-top:4px solid #556B2F;}
+.cup-score{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:700;color:#fff;text-shadow:2px 2px 0 #000;}
+.cup-hp{position:absolute;top:12px;left:12px;font-size:14px;color:#fff;text-shadow:1px 1px 0 #000;}
+.cup-cloud{position:absolute;font-size:36px;animation:cmove 8s linear infinite;}
+@keyframes cmove{from{right:-80px}to{right:110%}}
+.cup-hint{position:absolute;bottom:10px;width:100%;text-align:center;font-size:12px;color:rgba(255,255,255,.7);}
+
+/* Asphalt mini game */
+.asp-game{width:100%;height:100%;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 100%);position:relative;overflow:hidden;cursor:none;}
+.asp-road{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:300px;height:100%;background:#2a2a2a;}
+.asp-line{position:absolute;width:8px;height:60px;background:#ffd60a;left:50%;transform:translateX(-50%);border-radius:4px;animation:lmove 0.5s linear infinite;}
+@keyframes lmove{from{top:-60px}to{top:110%}}
+.asp-car{position:absolute;bottom:40px;font-size:40px;transition:left .15s;}
+.asp-opp{position:absolute;font-size:36px;animation:omove 1.5s linear infinite;}
+@keyframes omove{from{top:-60px}to{top:110%}}
+.asp-score{position:absolute;top:12px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:700;color:#fff;text-shadow:2px 2px 0 #000;}
+.asp-hint{position:absolute;bottom:10px;width:100%;text-align:center;font-size:12px;color:rgba(255,255,255,.7);}
+
+/* Solitaire */
+.sol-game{width:100%;height:100%;background:#076324;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:default;}
+.sol-row{display:flex;gap:8px;}
+.sol-card{width:52px;height:72px;border-radius:6px;background:#fff;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:transform .15s;box-shadow:2px 2px 4px rgba(0,0,0,.3);}
+.sol-card:hover{transform:translateY(-6px);}
+.sol-card.face-down{background:linear-gradient(135deg,#1a4a8a,#0a2a5a);font-size:0;}
+.sol-hint{font-size:12px;color:rgba(255,255,255,.7);text-align:center;}
+
+/* Minecraft style */
+.mc-game{width:100%;height:100%;background:linear-gradient(180deg,#87ceeb 0%,#87ceeb 50%,#228b22 50%,#8B4513 75%);position:relative;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(5,1fr);cursor:crosshair;}
+.mc-block{display:flex;align-items:center;justify-content:center;font-size:32px;border:1px solid rgba(0,0,0,.1);transition:filter .1s;cursor:pointer;}
+.mc-block:hover{filter:brightness(1.3);}
+
+/* OVERLAYS */
+.ripple{position:absolute;pointer-events:none;width:50px;height:50px;border-radius:50%;transform:translate(-50%,-50%) scale(0);animation:rpl .55s ease-out forwards;z-index:10;}
+.ripple.hit{background:rgba(48,209,88,.35);border:2px solid var(--ok);}
+.ripple.miss{background:rgba(255,69,58,.35);border:2px solid var(--danger);}
+@keyframes rpl{to{transform:translate(-50%,-50%) scale(3);opacity:0;}}
+
+.ai-wrap{position:absolute;bottom:0;left:0;right:0;padding:0 28px 18px;pointer-events:none;z-index:20;transform:translateY(110%);transition:transform .38s cubic-bezier(.34,1.15,.64,1);}
+.ai-wrap.on{transform:translateY(0);pointer-events:auto;}
+.ai-bubble{background:rgba(17,17,19,.96);border:1px solid var(--b2);border-left:3px solid var(--acc);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px;backdrop-filter:blur(20px);box-shadow:0 8px 40px rgba(0,0,0,.7);}
+.ai-avatar{width:34px;height:34px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.ai-msg{flex:1;font-size:14px;color:var(--t1);line-height:1.45;}
+.ai-x{width:26px;height:26px;border-radius:50%;background:var(--s2);border:none;color:var(--t2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
+.ai-x:hover{background:var(--s3);color:var(--t1);}
+.ai-x.hidden{display:none;}
+.ai-fab{position:absolute;bottom:20px;right:22px;background:rgba(17,17,19,.95);border:1px solid var(--b2);border-radius:22px;padding:10px 18px;font-size:13px;color:var(--t2);font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;z-index:15;backdrop-filter:blur(8px);}
+.ai-fab:hover{border-color:var(--acc);color:var(--t1);}
+.ai-fab-d{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:blink 2.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.success-ov{position:absolute;inset:0;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:30;}
+.success-ov.on{opacity:1;pointer-events:auto;}
+.success-ring{width:76px;height:76px;border-radius:50%;background:var(--ok);display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:pop .4s cubic-bezier(.34,1.3,.64,1);}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.success-ring svg{width:38px;height:38px;stroke:#000;stroke-width:2.5;fill:none;}
+.sov-h{font-size:22px;font-weight:600;margin-bottom:6px;letter-spacing:-.3px;}
+.sov-s{font-size:14px;color:var(--t2);margin-bottom:28px;}
+.next-btn{padding:13px 36px;border-radius:24px;border:none;background:var(--acc);color:#fff;font-size:15px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;}
+.next-btn:hover{background:#0070d8;}
+
+.final-ov{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:40;}
+.final-ov.on{display:flex;}
+.fcards{display:flex;gap:16px;margin:24px 0 32px;}
+.fcard{width:200px;background:var(--s1);border:1px solid var(--b2);border-radius:16px;padding:24px;text-align:center;}
+.fcard-v{font-size:36px;font-weight:700;letter-spacing:-1px;margin-bottom:4px;}
+.fcard-l{font-size:12px;color:var(--t2);}
+
+/* ══ AI TOAST ══ */
+.toast-stack{
+  position:fixed;top:56px;right:24px;
+  display:flex;flex-direction:column;gap:8px;
+  z-index:200;pointer-events:none;
+  width:340px;
+}
+.ai-toast{
+  background:rgba(17,17,19,0.97);
+  border:1px solid var(--b2);
+  border-radius:14px;
+  padding:14px 16px;
+  display:flex;align-items:flex-start;gap:12px;
+  backdrop-filter:blur(20px);
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+  pointer-events:auto;
+  transform:translateX(calc(100% + 32px));
+  opacity:0;
+  transition:transform .36s cubic-bezier(.34,1.15,.64,1), opacity .3s;
+}
+.ai-toast.in{transform:translateX(0);opacity:1;}
+.ai-toast.out{transform:translateX(calc(100% + 32px));opacity:0;transition:transform .28s ease-in,opacity .25s;}
+
+/* left accent border per type */
+.ai-toast.t-welcome {border-left:3px solid var(--acc);}
+.ai-toast.t-hesitate3{border-left:3px solid var(--warn);}
+.ai-toast.t-hesitate6{border-left:3px solid var(--danger);}
+.ai-toast.t-miss     {border-left:3px solid var(--danger);}
+.ai-toast.t-correct  {border-left:3px solid var(--ok);}
+.ai-toast.t-userreq  {border-left:3px solid var(--music);}
+
+.toast-icon{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;flex-shrink:0;
+}
+.t-welcome  .toast-icon{background:rgba(10,132,255,.2);color:var(--acc);}
+.t-hesitate3 .toast-icon{background:rgba(255,214,10,.15);color:var(--warn);}
+.t-hesitate6 .toast-icon{background:rgba(255,69,58,.15);color:var(--danger);}
+.t-miss      .toast-icon{background:rgba(255,69,58,.15);color:var(--danger);}
+.t-correct   .toast-icon{background:rgba(48,209,88,.15);color:var(--ok);}
+.t-userreq   .toast-icon{background:rgba(191,90,242,.15);color:var(--music);}
+
+.toast-body{flex:1;min-width:0;}
+.toast-trigger{
+  font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;
+  margin-bottom:3px;display:flex;align-items:center;gap:6px;
+}
+.t-welcome   .toast-trigger{color:var(--acc);}
+.t-hesitate3 .toast-trigger{color:var(--warn);}
+.t-hesitate6 .toast-trigger{color:var(--danger);}
+.t-miss      .toast-trigger{color:var(--danger);}
+.t-correct   .toast-trigger{color:var(--ok);}
+.t-userreq   .toast-trigger{color:var(--music);}
+.toast-trigger-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.5s ease-in-out infinite;}
+.toast-msg{font-size:13px;color:var(--t1);line-height:1.45;}
+.toast-close{
+  width:22px;height:22px;border-radius:50%;background:none;border:none;
+  color:var(--t3);font-size:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .12s;margin-top:-2px;
+}
+.toast-close:hover{background:var(--s2);color:var(--t1);}
+.toast-progress{
+  height:2px;border-radius:1px;margin-top:10px;
+  background:var(--b1);overflow:hidden;
+}
+.toast-progress-fill{
+  height:100%;border-radius:1px;
+  background:currentColor;
+  animation:tprog linear forwards;
+}
+@keyframes tprog{from{width:100%}to{width:0%}}
+
+/* RIGHT PANEL */
+.rpanel{background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;}
+.rp-hd{padding:18px 18px 12px;border-bottom:1px solid var(--b1);flex-shrink:0;}
+.rp-title{font-size:15px;font-weight:500;margin-bottom:2px;}
+.rp-sub{font-size:12px;color:var(--t2);}
+.rp-tasks{padding:12px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;display:flex;flex-direction:column;gap:6px;}
+.rp-task{padding:12px 14px;border-radius:10px;background:var(--s2);border:1px solid transparent;cursor:pointer;transition:all .15s;}
+.rp-task:hover{background:var(--s3);}
+.rp-task.active{border-color:var(--acc);background:rgba(10,132,255,.07);}
+.rp-task.done{opacity:.45;}
+.rp-task-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.rp-chip{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;}
+.chip-m{background:rgba(191,90,242,.15);color:var(--music);}
+.chip-v{background:rgba(255,107,53,.15);color:var(--video);}
+.chip-g{background:rgba(48,209,88,.12);color:var(--game);}
+.rp-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+.rp-check.done{background:var(--ok);border-color:var(--ok);color:#000;}
+.rp-tname{font-size:13px;font-weight:500;}
+.rp-tdesc{font-size:11px;color:var(--t2);}
+.rp-metrics{padding:12px 14px;border-bottom:1px solid var(--b1);display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0;}
+.rm{background:var(--s2);border-radius:10px;padding:10px 12px;}
+.rm-v{font-size:22px;font-weight:600;letter-spacing:-.5px;}
+.rm-l{font-size:11px;color:var(--t2);margin-top:1px;}
+.rp-log{flex:1;overflow-y:auto;padding:4px 0;}
+.log-r{display:flex;align-items:flex-start;gap:8px;padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.02);}
+.log-ts{font-size:10px;color:var(--t3);min-width:38px;margin-top:2px;font-variant-numeric:tabular-nums;}
+.log-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.log-dot.hit{background:var(--ok);}
+.log-dot.miss{background:var(--danger);}
+.log-dot.ai{background:var(--acc);}
+.log-dot.sys{background:var(--t3);}
+.log-dot.hesit{background:var(--warn);}
+.log-m{font-size:12px;color:var(--t2);line-height:1.4;}
+.rp-ai{padding:12px 14px;border-top:1px solid var(--b1);flex-shrink:0;}
+.rp-ai-title{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+.tog-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.tog-lbl{font-size:12px;color:var(--t2);}
+.tog{position:relative;width:36px;height:20px;flex-shrink:0;}
+.tog input{opacity:0;width:0;height:0;}
+.tog-t{position:absolute;inset:0;border-radius:10px;background:var(--s3);border:1px solid var(--b2);cursor:pointer;transition:background .18s;}
+.tog-t::after{content:'';position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--t3);transition:transform .18s,background .18s;}
+.tog input:checked+.tog-t{background:rgba(10,132,255,.2);border-color:var(--acc);}
+.tog input:checked+.tog-t::after{transform:translateX(16px);background:var(--acc);}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- STATUS BAR -->
+<div class="sbar">
+  <div class="sbar-l">
+    <span class="sbar-time" id="clk">9:41</span>
+    <span class="sbar-item"><span class="sbar-dot"></span>Research Active</span>
+    <span class="sbar-item" id="elapsed-bar" style="font-variant-numeric:tabular-nums;">00:00</span>
+  </div>
+  <span class="sbar-item" style="font-size:13px;color:var(--t3);">HMI Studio · IVI Research Simulator</span>
+  <div class="sbar-r">
+    <span class="sbar-item">🌡 22°C</span>
+    <span class="sbar-item">WiFi ●●●</span>
+    <span class="sbar-item">🔋 88%</span>
+  </div>
+</div>
+
+<div class="layout">
+
+<!-- DOCK -->
+<div class="dock">
+  <button class="dock-btn active" id="dock-music" onclick="switchApp('music',this)">
+    <span class="dock-icon">♪</span><span>음악</span>
+  </button>
+  <button class="dock-btn" id="dock-video" onclick="switchApp('video',this)">
+    <span class="dock-icon">▶</span><span>영상</span>
+  </button>
+  <button class="dock-btn" id="dock-game" onclick="switchApp('game',this)">
+    <span class="dock-icon">⊞</span><span>게임</span>
+  </button>
+  <div class="dock-sep"></div>
+  <button class="dock-btn" onclick="null"><span class="dock-icon">⚙</span><span>설정</span></button>
+  <button class="dock-btn" onclick="null"><span class="dock-icon">📍</span><span>지도</span></button>
+</div>
+
+<!-- IVI CENTER -->
+<div class="ivi-main">
+  <div class="topbar">
+    <button class="tb-tab active" onclick="setSubTab(this)">전체</button>
+    <button class="tb-tab" onclick="setSubTab(this)">최근 재생</button>
+    <button class="tb-tab" onclick="setSubTab(this)">즐겨찾기</button>
+    <button class="tb-tab" onclick="setSubTab(this)">추천</button>
+    <div class="tb-right">
+      <div class="step-pips" id="step-pips"></div>
+      <div class="vpill">
+        <button class="vp active" onclick="setVariant('A',this)">A</button>
+        <button class="vp" onclick="setVariant('B',this)">B</button>
+        <button class="vp" onclick="setVariant('C',this)">C</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-area" id="content-area">
+
+    <!-- ═══ MUSIC APP ═══ -->
+    <div class="app-music" id="app-music">
+      <!-- Left: Player -->
+      <div class="music-left">
+        <div class="music-cover-area">
+          <div class="music-art" id="now-art">🎄</div>
+          <div class="music-now-title" id="now-title">All I Want for Christmas Is You</div>
+          <div class="music-now-artist" id="now-artist">Mariah Carey</div>
+          <div class="progress-bar" onclick="seekMusic(event)">
+            <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+          </div>
+          <div class="progress-times">
+            <span id="prog-cur">0:00</span><span id="prog-tot">4:01</span>
+          </div>
+          <div class="ctrl-row">
+            <button class="ctrl-btn" onclick="prevSong()" title="이전">⏮</button>
+            <button class="ctrl-btn" onclick="toggleShuffle()" id="shuffle-btn" title="셔플">🔀</button>
+            <button class="ctrl-play" id="play-btn" onclick="togglePlay()">▶</button>
+            <button class="ctrl-btn" onclick="toggleRepeat()" id="repeat-btn" title="반복">🔁</button>
+            <button class="ctrl-btn" onclick="nextSong()" title="다음">⏭</button>
+          </div>
+          <div class="vol-row" style="margin-top:12px;">
+            <span class="vol-icon">🔈</span>
+            <input class="vol-slider" type="range" min="0" max="100" value="70" id="vol-slider" oninput="setVol(this.value)">
+            <span class="vol-icon">🔊</span>
+          </div>
+        </div>
+        <div class="music-queue">
+          <div class="queue-header">재생목록</div>
+          <div id="queue-list"></div>
+        </div>
+      </div>
+
+      <!-- Right: Album grid -->
+      <div class="music-right">
+        <div class="section-header">
+          <span class="section-title">크리스마스 플레이리스트</span>
+          <button class="section-more">모두 보기 →</button>
+        </div>
+        <div class="album-grid" id="album-grid"></div>
+        <div class="section-header">
+          <span class="section-title">추천 아티스트</span>
+          <button class="section-more">모두 보기 →</button>
+        </div>
+        <div class="album-grid" id="artist-grid"></div>
+      </div>
+    </div>
+
+    <!-- ═══ VIDEO APP ═══ -->
+    <div class="app-video" id="app-video" style="display:none;">
+      <div class="video-browse" id="video-browse">
+        <div class="video-hero">
+          <div class="vh-bg">🎬</div>
+          <div class="vh-grad"></div>
+          <div class="vh-content">
+            <div class="vh-badge">Netflix 오리지널</div>
+            <div class="vh-title">지금 인기 콘텐츠</div>
+            <div class="vh-meta">애니메이션 · 드라마 · 영화 · 다큐멘터리</div>
+            <div class="vh-btns">
+              <button class="vh-btn primary">▶ 재생</button>
+              <button class="vh-btn ghost">+ 내 목록</button>
+            </div>
+          </div>
+        </div>
+        <div id="video-sections"></div>
+      </div>
+
+      <!-- VIDEO PLAYER -->
+      <div class="video-player" id="video-player">
+        <div class="vp-screen" onclick="toggleVidPlay()">
+          <div class="vp-content" id="vp-content">
+            <div id="vp-emoji" style="font-size:100px;">⚔</div>
+            <div class="vp-title" id="vp-show-title">귀멸의칼날</div>
+          </div>
+          <div class="vp-overlay-btn">
+            <div class="vp-pause-icon" id="vp-pause-icon">⏸</div>
+          </div>
+        </div>
+        <div class="vp-controls">
+          <button class="vp-back" onclick="closeVideoPlayer()">← 돌아가기</button>
+          <button class="ctrl-btn" style="color:var(--t2);" onclick="toggleVidPlay()" id="vpplay-btn">⏸</button>
+          <span class="vp-time" id="vp-cur">0:00</span>
+          <div class="vp-prog" onclick="seekVid(event)">
+            <div class="vp-prog-fill" id="vp-prog" style="width:0%"></div>
+          </div>
+          <span class="vp-time" id="vp-tot">24:00</span>
+          <button class="ctrl-btn" style="color:var(--t2);" onclick="null">CC</button>
+          <button class="ctrl-btn" style="color:var(--t2);" onclick="null">⛶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ GAME APP ═══ -->
+    <div class="app-game" id="app-game" style="display:none;">
+      <div class="game-hero">
+        <div>
+          <div class="gh-tag">Game Library</div>
+          <div class="gh-title">게임 라이브러리</div>
+          <div class="gh-desc">차량 내에서 즐기는 프리미엄 게임 콘텐츠. 정차 중 또는 자율주행 모드에서 사용하세요.</div>
+          <button class="gh-btn" onclick="null">라이브러리 열기</button>
+        </div>
+        <div class="gh-deco">🎮</div>
+      </div>
+      <div class="game-section-title">전체 게임</div>
+      <div class="game-grid" id="game-grid"></div>
+
+      <!-- GAME MODAL -->
+      <div class="game-modal" id="game-modal">
+        <div class="gm-title" id="gm-title">게임 로딩 중...</div>
+        <div class="gm-screen" id="gm-screen"></div>
+        <button class="gm-back" onclick="closeGame()">← 게임 목록으로</button>
+      </div>
+    </div>
+
+    <!-- AI Bubble (토스트로 대체 — 숨김) -->
+    <div class="ai-wrap" id="ai-wrap" style="display:none;">
+      <div class="ai-bubble">
+        <div class="ai-avatar">AI</div>
+        <div class="ai-msg" id="ai-msg"></div>
+        <button class="ai-x" id="ai-x" onclick="dismissAI()">✕</button>
+      </div>
+    </div>
+    <button class="ai-fab" id="ai-fab" onclick="userAI()">
+      <div class="ai-fab-d"></div>도움 요청
+    </button>
+
+    <!-- Success overlay -->
+    <div class="success-ov" id="sov">
+      <div class="success-ring"><svg viewBox="0 0 38 38"><polyline points="7,19 15,27 31,11"/></svg></div>
+      <div class="sov-h" id="sov-h">찾으셨어요!</div>
+      <div class="sov-s" id="sov-s"></div>
+      <button class="next-btn" onclick="goNext()">다음 태스크 →</button>
+    </div>
+
+    <!-- Final overlay -->
+    <div class="final-ov" id="fov">
+      <div style="font-size:11px;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">Session Complete</div>
+      <div style="font-size:28px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;">모든 태스크 완료 🎉</div>
+      <div style="font-size:14px;color:var(--t2);margin-bottom:0;">수집된 행동 데이터</div>
+      <div class="fcards">
+        <div class="fcard"><div class="fcard-v" id="f-c">0</div><div class="fcard-l">총 클릭</div></div>
+        <div class="fcard"><div class="fcard-v" id="f-m">0</div><div class="fcard-l">미스클릭</div></div>
+        <div class="fcard"><div class="fcard-v" id="f-a">0</div><div class="fcard-l">AI 개입</div></div>
+        <div class="fcard"><div class="fcard-v" id="f-t">0s</div><div class="fcard-l">총 소요시간</div></div>
+      </div>
+      <button style="padding:12px 30px;border-radius:24px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:14px;font-family:Inter,sans-serif;cursor:pointer;" onclick="restart()">↺ 다시 시작</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="rpanel">
+  <div class="rp-hd">
+    <div class="rp-title">리서치 패널</div>
+    <div class="rp-sub">태스크 & 행동 추적</div>
+  </div>
+  <div class="rp-tasks">
+    <div class="rp-task active" id="rt-0" onclick="selectTask(0)">
+      <div class="rp-task-row"><span class="rp-chip chip-m">Music</span><div class="rp-check" id="rc-0"></div></div>
+      <div class="rp-tname">Mariah Carey</div>
+      <div class="rp-tdesc">All I Want for Christmas Is You</div>
+    </div>
+    <div class="rp-task" id="rt-1" onclick="selectTask(1)">
+      <div class="rp-task-row"><span class="rp-chip chip-v">Video</span><div class="rp-check" id="rc-1"></div></div>
+      <div class="rp-tname">귀멸의칼날</div>
+      <div class="rp-tdesc">Netflix 애니메이션</div>
+    </div>
+    <div class="rp-task" id="rt-2" onclick="selectTask(2)">
+      <div class="rp-task-row"><span class="rp-chip chip-g">Game</span><div class="rp-check" id="rc-2"></div></div>
+      <div class="rp-tname">Cuphead</div>
+      <div class="rp-tdesc">게임 콘텐츠 탐색</div>
+    </div>
+  </div>
+  <div class="rp-metrics">
+    <div class="rm"><div class="rm-v" id="m-c">0</div><div class="rm-l">클릭</div></div>
+    <div class="rm"><div class="rm-v" id="m-m">0</div><div class="rm-l">미스</div></div>
+    <div class="rm"><div class="rm-v" id="m-a">0</div><div class="rm-l">AI 개입</div></div>
+    <div class="rm"><div class="rm-v" id="m-t">0s</div><div class="rm-l">경과</div></div>
+  </div>
+  <div class="rp-log" id="rp-log"></div>
+  <div class="rp-ai">
+    <div class="rp-ai-title">AI 설정</div>
+    <div class="tog-row"><span class="tog-lbl">자동 힌트 (3초/6초)</span><label class="tog"><input type="checkbox" id="t-auto" onchange="onToggle()"><div class="tog-t"></div></label></div>
+    <div class="tog-row"><span class="tog-lbl">AI 토스트 표시</span><label class="tog"><input type="checkbox" id="t-dis" checked onchange="onToggle()"><div class="tog-t"></div></label></div>
+    <div class="tog-row"><span class="tog-lbl">도움 요청 버튼</span><label class="tog"><input type="checkbox" id="t-fab" checked onchange="onToggle()"><div class="tog-t"></div></label></div>
+  </div>
+</div>
+
+</div><!-- /layout -->
+
+<!-- AI TOAST STACK -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+/* ══ DATA ══ */
+const SONGS = [
+  {n:1,e:'🎄',t:'All I Want for Christmas Is You',a:'Mariah Carey',dur:241,bg:'linear-gradient(135deg,#3d0f6e,#8b2fc9)',TARGET:true},
+  {n:2,e:'❄️',t:'Last Christmas',a:'Wham!',dur:265,bg:'#1a2a3a'},
+  {n:3,e:'⭐',t:'Jingle Bell Rock',a:'Bobby Helms',dur:131,bg:'#1a2a1a'},
+  {n:4,e:'🎅',t:'Rockin\' Around the Christmas Tree',a:'Brenda Lee',dur:123,bg:'#2a1a1a'},
+  {n:5,e:'🦌',t:'Rudolph the Red-Nosed Reindeer',a:'Gene Autry',dur:138,bg:'#1a1a2a'},
+  {n:6,e:'🕯️',t:'White Christmas',a:'Bing Crosby',dur:182,bg:'#2a2a1a'},
+  {n:7,e:'🎁',t:'It\'s the Most Wonderful Time',a:'Andy Williams',dur:154,bg:'#1a2a2a'},
+  {n:8,e:'🌟',t:'Feliz Navidad',a:'José Feliciano',dur:162,bg:'#2a1a2a'},
+  {n:9,e:'🔔',t:'Silver Bells',a:'Bing Crosby',dur:175,bg:'#1a1a1a'},
+];
+const ALBUMS = [
+  {e:'🎄',t:'Christmas Classics',s:'Various Artists',bg:'linear-gradient(135deg,#3d0f6e,#8b2fc9)',songs:[0,1,2]},
+  {e:'❄️',t:'Winter Wonderland',s:'Wham! & Friends',bg:'linear-gradient(135deg,#0a2a5a,#1a4a8a)',songs:[1,3,4]},
+  {e:'🎅',t:'Santa\'s Playlist',s:'Brenda Lee',bg:'linear-gradient(135deg,#5a0a0a,#8a2a2a)',songs:[3,4,5]},
+  {e:'🌟',t:'Holiday Hits 2024',s:'Compilation',bg:'linear-gradient(135deg,#0a3a2a,#1a5a3a)',songs:[6,7,8]},
+];
+const ARTISTS = [
+  {e:'🎤',t:'Mariah Carey',s:'Pop · Christmas',bg:'linear-gradient(135deg,#4a0a6e,#7a2a9e)'},
+  {e:'🎸',t:'Wham!',s:'Pop · 80s',bg:'linear-gradient(135deg,#0a2a5a,#1a4a8a)'},
+  {e:'🎺',t:'Bing Crosby',s:'Jazz · Classic',bg:'linear-gradient(135deg,#3a2a0a,#6a4a1a)'},
+  {e:'🎹',t:'Andy Williams',s:'Easy Listening',bg:'linear-gradient(135deg,#0a3a2a,#1a5a3a)'},
+];
+const VIDEOS = [
+  {rows:[
+    {title:'지금 화제작',items:[
+      {e:'⚔️',bg:'linear-gradient(135deg,#1a0505,#3a0f0f)',t:'귀멸의칼날',s:'애니메이션 · S4',prog:35,dur:1440,TARGET:true},
+      {e:'🏠',bg:'linear-gradient(135deg,#051a05,#0f3a0f)',t:'오징어게임',s:'드라마 · S3',prog:60,dur:3600},
+      {e:'👊',bg:'linear-gradient(135deg,#05051a,#0f0f3a)',t:'나의 히어로 아카데미아',s:'애니메이션 · S7',prog:0,dur:1440},
+      {e:'🌊',bg:'linear-gradient(135deg,#0a1020,#1a2040)',t:'원피스',s:'애니메이션 · S21',prog:20,dur:1440},
+      {e:'🎭',bg:'linear-gradient(135deg,#1a0f00,#3a1f00)',t:'더 글로리',s:'드라마 · 한국',prog:80,dur:3600},
+      {e:'🦋',bg:'linear-gradient(135deg,#150015,#2a002a)',t:'블루 아이 사무라이',s:'애니메이션',prog:0,dur:1440},
+    ]},
+    {title:'계속 보기',items:[
+      {e:'🧟',bg:'linear-gradient(135deg,#0f1a0f,#1f3a1f)',t:'워킹 데드',s:'드라마 · S11',prog:45,dur:2700},
+      {e:'👸',bg:'linear-gradient(135deg,#1a0f0f,#3a1f1f)',t:'더 크라운',s:'드라마 · S6',prog:70,dur:3600},
+      {e:'🤖',bg:'linear-gradient(135deg,#0f0f1a,#1f1f3a)',t:'알터드 카본',s:'SF · S2',prog:30,dur:2700},
+      {e:'🌌',bg:'linear-gradient(135deg,#050a1a,#0f1a3a)',t:'러브 데스 로봇',s:'애니메이션',prog:0,dur:900},
+      {e:'🧠',bg:'linear-gradient(135deg,#1a1a0a,#3a3a1a)',t:'블랙 미러',s:'SF · S6',prog:55,dur:2700},
+    ]},
+  ]}
+];
+const GAMES = [
+  {e:'☕',bg:'linear-gradient(135deg,#1a0f05,#3a1f0a)',t:'Cuphead',g:'Action · Indie',stars:'★★★★★',TARGET:true, type:'cuphead'},
+  {e:'🏎️',bg:'linear-gradient(135deg,#05101a,#0a203a)',t:'Asphalt 9',g:'Racing',stars:'★★★★☆', type:'asphalt'},
+  {e:'⚽',bg:'linear-gradient(135deg,#051a08,#0a3a10)',t:'FIFA Mobile',g:'Sports',stars:'★★★★☆', type:'generic'},
+  {e:'🧱',bg:'linear-gradient(135deg,#0f0f0f,#2a2a2a)',t:'Minecraft',g:'Sandbox',stars:'★★★★★', type:'minecraft'},
+  {e:'🚀',bg:'linear-gradient(135deg,#0a0a1a,#1a1a3a)',t:'Among Us',g:'Party',stars:'★★★☆☆', type:'generic'},
+  {e:'🃏',bg:'linear-gradient(135deg,#1a0f05,#2a1f0a)',t:'Solitaire',g:'Card',stars:'★★★☆☆', type:'solitaire'},
+  {e:'🎯',bg:'linear-gradient(135deg,#1a0505,#3a0a0a)',t:'Angry Birds',g:'Casual',stars:'★★★★☆', type:'generic'},
+  {e:'🧩',bg:'linear-gradient(135deg,#0f051a,#1f0a3a)',t:'Monument Valley',g:'Puzzle',stars:'★★★★★', type:'generic'},
+  {e:'🎵',bg:'linear-gradient(135deg,#1a0a1a,#3a1a3a)',t:'Beat Saber',g:'Rhythm',stars:'★★★★☆', type:'generic'},
+  {e:'🌍',bg:'linear-gradient(135deg,#051a0f,#0a3a1f)',t:'Alto\'s Odyssey',g:'Endless',stars:'★★★★☆', type:'generic'},
+];
+
+/* ══ STATE ══ */
+let S={
+  app:'music',task:0,variant:'A',
+  ss:Date.now(),ts:Date.now(),
+  clicks:0,misses:0,aiCount:0,
+  done:[false,false,false],
+  h3:null,h6:null,
+  // music
+  nowSong:0,playing:false,progSec:0,progTimer:null,
+  vol:70,shuffle:false,repeat:false,liked:[],
+  // video
+  vidPlaying:false,vidSec:0,vidTimer:null,vidDur:1440,
+  // game
+  gameActive:null,gameTimer:null,
+  cupX:280,cupHP:3,cupScore:0,cupKeys:{},
+  aspX:290,aspScore:0,aspKeys:{},
+  solCards:[],
+};
+
+/* ══ INIT ══ */
+function init(){
+  buildMusicQueue();
+  buildAlbumGrid();
+  buildVideoSections();
+  buildGameGrid();
+  updateClock();
+  setInterval(updateClock,15000);
+  setInterval(tickTime,500);
+  updateDots();
+  updateNowPlaying(0);
+  log('sys','세션 시작');
+}
+
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clk').textContent=n.getHours()+':'+String(n.getMinutes()).padStart(2,'0');
+}
+function tickTime(){
+  const s=((Date.now()-S.ss)/1000)|0;
+  document.getElementById('elapsed-bar').textContent=String((s/60|0)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  document.getElementById('m-t').textContent=s+'s';
+}
+
+/* ══ MUSIC ══ */
+function buildMusicQueue(){
+  const el=document.getElementById('queue-list');
+  el.innerHTML='';
+  SONGS.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.className='song-row'+(s.TARGET?' target-item':'')+(i===S.nowSong?' playing':'');
+    d.dataset.idx=i;
+    d.dataset.target=s.TARGET||false;
+    d.innerHTML=`<span class="song-num ${i===S.nowSong?'eq':''}" id="snum-${i}">${i===S.nowSong?'♪':s.n}</span>
+      <div class="song-thumb" style="background:${s.bg}">${s.e}</div>
+      <div class="song-info"><div class="song-title">${s.t}</div><div class="song-artist">${s.a}</div></div>
+      <span class="song-heart ${S.liked.includes(i)?'liked':''}" onclick="toggleLike(event,${i})">♥</span>
+      <span class="song-dur">${fmt(s.dur)}</span>`;
+    d.addEventListener('click',(e)=>{
+      if(e.target.classList.contains('song-heart')) return;
+      handleItemClick(d,s.TARGET,'노래: '+s.t,()=>playSong(i));
+    });
+    el.appendChild(d);
+  });
+}
+
+function buildAlbumGrid(){
+  const ag=document.getElementById('album-grid');
+  ag.innerHTML='';
+  ALBUMS.forEach((a,i)=>{
+    const d=document.createElement('div');
+    d.className='album-card'+(i===0?' playing-album':'');
+    d.innerHTML=`<div class="album-art" style="background:${a.bg}">${a.e}</div>
+      <div class="album-info"><div class="album-title">${a.t}</div><div class="album-sub">${a.s}</div></div>
+      <div class="playing-badge">▶</div>`;
+    d.addEventListener('click',()=>{
+      document.querySelectorAll('.album-card').forEach(c=>c.classList.remove('playing-album'));
+      d.classList.add('playing-album');
+      playSong(a.songs[0]);
+      log('sys','앨범 선택: '+a.t);
+    });
+    ag.appendChild(d);
+  });
+  const artg=document.getElementById('artist-grid');
+  artg.innerHTML='';
+  ARTISTS.forEach(a=>{
+    const d=document.createElement('div');
+    d.className='album-card';
+    d.innerHTML=`<div class="album-art" style="background:${a.bg}">${a.e}</div>
+      <div class="album-info"><div class="album-title">${a.t}</div><div class="album-sub">${a.s}</div></div>`;
+    d.addEventListener('click',()=>log('sys','아티스트: '+a.t));
+    artg.appendChild(d);
+  });
+}
+
+function playSong(i){
+  S.nowSong=i; S.progSec=0; S.playing=true;
+  clearInterval(S.progTimer);
+  S.progTimer=setInterval(tickProg,1000);
+  updateNowPlaying(i);
+  buildMusicQueue();
+  document.getElementById('play-btn').textContent='⏸';
+  log('sys','재생: '+SONGS[i].t);
+}
+
+function updateNowPlaying(i){
+  const s=SONGS[i];
+  document.getElementById('now-art').textContent=s.e;
+  document.getElementById('now-art').style.background=s.bg;
+  document.getElementById('now-title').textContent=s.t;
+  document.getElementById('now-artist').textContent=s.a;
+  document.getElementById('prog-tot').textContent=fmt(s.dur);
+  document.getElementById('prog-fill').style.width='0%';
+  document.getElementById('prog-cur').textContent='0:00';
+}
+
+function tickProg(){
+  if(!S.playing) return;
+  S.progSec++;
+  const dur=SONGS[S.nowSong].dur;
+  if(S.progSec>=dur){ nextSong(); return; }
+  document.getElementById('prog-fill').style.width=(S.progSec/dur*100)+'%';
+  document.getElementById('prog-cur').textContent=fmt(S.progSec);
+}
+
+function togglePlay(){
+  S.playing=!S.playing;
+  document.getElementById('play-btn').textContent=S.playing?'⏸':'▶';
+  if(S.playing){ clearInterval(S.progTimer); S.progTimer=setInterval(tickProg,1000); }
+  else clearInterval(S.progTimer);
+  log('sys',S.playing?'재생':'일시정지');
+}
+function nextSong(){ playSong((S.nowSong+1)%SONGS.length); }
+function prevSong(){ S.progSec>3?playSong(S.nowSong):playSong((S.nowSong-1+SONGS.length)%SONGS.length); }
+function toggleShuffle(){ S.shuffle=!S.shuffle; document.getElementById('shuffle-btn').style.color=S.shuffle?'var(--acc)':'var(--t2)'; }
+function toggleRepeat(){ S.repeat=!S.repeat; document.getElementById('repeat-btn').style.color=S.repeat?'var(--acc)':'var(--t2)'; }
+function toggleLike(e,i){
+  e.stopPropagation();
+  if(S.liked.includes(i)) S.liked=S.liked.filter(x=>x!==i); else S.liked.push(i);
+  buildMusicQueue();
+}
+function setVol(v){ S.vol=v; log('sys','볼륨: '+v+'%'); }
+function seekMusic(e){
+  const bar=e.currentTarget; const rect=bar.getBoundingClientRect();
+  const pct=(e.clientX-rect.left)/rect.width;
+  S.progSec=Math.floor(pct*SONGS[S.nowSong].dur);
+  document.getElementById('prog-fill').style.width=(pct*100)+'%';
+  document.getElementById('prog-cur').textContent=fmt(S.progSec);
+}
+function fmt(s){return Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
+
+/* ══ VIDEO ══ */
+function buildVideoSections(){
+  const el=document.getElementById('video-sections');
+  el.innerHTML='';
+  VIDEOS[0].rows.forEach(row=>{
+    const sec=document.createElement('div');
+    sec.className='video-section';
+    sec.innerHTML=`<div class="vs-title">${row.title}<button class="vs-more">모두 보기 →</button></div>`;
+    const vrow=document.createElement('div'); vrow.className='vrow';
+    row.items.forEach(item=>{
+      const c=document.createElement('div');
+      c.className='vcard'+(item.TARGET?' target-item':'');
+      c.dataset.target=item.TARGET||false;
+      c.innerHTML=`<div class="vcard-thumb" style="background:${item.bg}">${item.e}<div class="vcard-play-ov">▶</div></div>
+        <div class="vcard-info">
+          <div class="vcard-title">${item.t}</div>
+          <div class="vcard-sub">${item.s}</div>
+          ${item.prog>0?`<div class="vcard-prog"><div class="vcard-prog-fill" style="width:${item.prog}%"></div></div>`:''}
+        </div>`;
+      c.addEventListener('click',()=>handleItemClick(c,item.TARGET,'영상: '+item.t,()=>openVideoPlayer(item)));
+      vrow.appendChild(c);
+    });
+    sec.appendChild(vrow);
+    el.appendChild(sec);
+  });
+}
+
+function openVideoPlayer(item){
+  document.getElementById('video-browse').style.display='none';
+  const vp=document.getElementById('video-player');
+  vp.classList.add('on');
+  document.getElementById('vp-emoji').textContent=item.e;
+  document.getElementById('vp-show-title').textContent=item.t;
+  S.vidSec=Math.floor(item.prog/100*item.dur);
+  S.vidDur=item.dur;
+  S.vidPlaying=true;
+  clearInterval(S.vidTimer);
+  S.vidTimer=setInterval(tickVid,1000);
+  updateVidUI();
+  log('sys','영상 재생: '+item.t);
+}
+function closeVideoPlayer(){
+  document.getElementById('video-player').classList.remove('on');
+  document.getElementById('video-browse').style.display='';
+  S.vidPlaying=false; clearInterval(S.vidTimer);
+}
+function toggleVidPlay(){
+  S.vidPlaying=!S.vidPlaying;
+  document.getElementById('vpplay-btn').textContent=S.vidPlaying?'⏸':'▶';
+  document.getElementById('vp-pause-icon').textContent=S.vidPlaying?'⏸':'▶';
+  if(S.vidPlaying){ clearInterval(S.vidTimer); S.vidTimer=setInterval(tickVid,1000); }
+  else clearInterval(S.vidTimer);
+}
+function tickVid(){
+  if(!S.vidPlaying) return;
+  S.vidSec++; if(S.vidSec>=S.vidDur) S.vidSec=0;
+  updateVidUI();
+}
+function updateVidUI(){
+  document.getElementById('vp-cur').textContent=fmt(S.vidSec);
+  document.getElementById('vp-tot').textContent=fmt(S.vidDur);
+  document.getElementById('vp-prog').style.width=(S.vidSec/S.vidDur*100)+'%';
+}
+function seekVid(e){
+  const r=e.currentTarget.getBoundingClientRect();
+  S.vidSec=Math.floor((e.clientX-r.left)/r.width*S.vidDur);
+  updateVidUI();
+}
+
+/* ══ GAMES ══ */
+function buildGameGrid(){
+  const el=document.getElementById('game-grid');
+  el.innerHTML='';
+  GAMES.forEach(g=>{
+    const c=document.createElement('div');
+    c.className='gcard'+(g.TARGET?' target-item':'');
+    c.dataset.target=g.TARGET||false;
+    c.innerHTML=`<div class="gcard-art" style="background:${g.bg}">${g.e}</div>
+      <div class="gcard-info"><div class="gcard-title">${g.t}</div><div class="gcard-genre">${g.g}</div><div class="gcard-stars">${g.stars}</div></div>`;
+    c.addEventListener('click',()=>handleItemClick(c,g.TARGET,'게임: '+g.t,()=>openGame(g)));
+    el.appendChild(c);
+  });
+}
+
+function openGame(g){
+  const modal=document.getElementById('game-modal');
+  modal.classList.add('on');
+  document.getElementById('gm-title').textContent=g.t;
+  const screen=document.getElementById('gm-screen');
+  screen.innerHTML='';
+  S.gameActive=g.type;
+  if(g.type==='cuphead') buildCuphead(screen);
+  else if(g.type==='asphalt') buildAsphalt(screen);
+  else if(g.type==='solitaire') buildSolitaire(screen);
+  else if(g.type==='minecraft') buildMinecraft(screen);
+  else buildGenericGame(screen,g);
+  log('sys','게임 실행: '+g.t);
+}
+function closeGame(){
+  document.getElementById('game-modal').classList.remove('on');
+  S.gameActive=null;
+  clearInterval(S.gameTimer);
+  document.removeEventListener('keydown',gameKeyDown);
+  document.removeEventListener('keyup',gameKeyUp);
+}
+
+/* Cuphead mini game */
+function buildCuphead(el){
+  el.style.cursor='none';
+  el.innerHTML=`<div class="cup-game" id="cup-game">
+    <div class="cup-cloud" style="bottom:220px;animation-duration:10s;animation-delay:0s;">☁️</div>
+    <div class="cup-cloud" style="bottom:260px;animation-duration:7s;animation-delay:-3s;">☁️</div>
+    <div class="cup-score" id="cup-score">Score: 0</div>
+    <div class="cup-hp" id="cup-hp">❤️❤️❤️</div>
+    <div class="cup-char" id="cup-char" style="left:${S.cupX}px;">☕</div>
+    <div class="cup-enemy" id="cup-enemy" style="bottom:80px;">👾</div>
+    <div class="cup-ground"></div>
+    <div class="cup-hint">← → 이동 · SPACE 공격</div>
+  </div>`;
+  S.cupX=280; S.cupHP=3; S.cupScore=0; S.cupKeys={};
+  document.addEventListener('keydown',gameKeyDown);
+  document.addEventListener('keyup',gameKeyUp);
+  const g=document.getElementById('cup-game');
+  g.addEventListener('click',cupShoot);
+  S.gameTimer=setInterval(()=>{
+    if(S.gameActive!=='cuphead') return;
+    if(S.cupKeys['ArrowLeft']) S.cupX=Math.max(0,S.cupX-8);
+    if(S.cupKeys['ArrowRight']) S.cupX=Math.min(600,S.cupX+8);
+    const ch=document.getElementById('cup-char');
+    if(ch) ch.style.left=S.cupX+'px';
+  },30);
+}
+function cupShoot(){
+  if(S.gameActive!=='cuphead') return;
+  const b=document.createElement('div');
+  b.className='cup-bullet'; b.textContent='💥'; b.style.left=S.cupX+'px';
+  document.getElementById('cup-game').appendChild(b);
+  S.cupScore+=10;
+  const sc=document.getElementById('cup-score');
+  if(sc) sc.textContent='Score: '+S.cupScore;
+  setTimeout(()=>b.remove(),900);
+}
+function gameKeyDown(e){
+  S.cupKeys[e.key]=true; S.aspKeys[e.key]=true;
+  if(e.key===' '){ e.preventDefault(); if(S.gameActive==='cuphead') cupShoot(); }
+  if(S.gameActive==='asphalt'){
+    if(e.key==='ArrowLeft') S.aspX=Math.max(160,S.aspX-30);
+    if(e.key==='ArrowRight') S.aspX=Math.min(420,S.aspX+30);
+    const car=document.getElementById('asp-car');
+    if(car) car.style.left=S.aspX+'px';
+  }
+}
+function gameKeyUp(e){ S.cupKeys[e.key]=false; S.aspKeys[e.key]=false; }
+
+/* Asphalt mini game */
+function buildAsphalt(el){
+  S.aspX=290; S.aspScore=0;
+  el.innerHTML=`<div class="asp-game" id="asp-game">
+    <div class="asp-road"></div>
+    <div class="asp-line" style="animation-delay:0s;"></div>
+    <div class="asp-line" style="animation-delay:-0.25s;"></div>
+    <div class="asp-score" id="asp-score">0 km/h</div>
+    <div class="asp-car" id="asp-car" style="left:${S.aspX}px;">🏎️</div>
+    <div class="asp-opp" style="left:50%;animation-duration:2s;animation-delay:-0.5s;">🚗</div>
+    <div class="asp-opp" style="left:calc(50% + 80px);animation-duration:2.5s;animation-delay:-1s;">🚙</div>
+    <div class="asp-hint">← → 이동 · 점수가 올라가요!</div>
+  </div>`;
+  document.addEventListener('keydown',gameKeyDown);
+  document.addEventListener('keyup',gameKeyUp);
+  const g=document.getElementById('asp-game');
+  g.addEventListener('click',(e)=>{
+    const r=g.getBoundingClientRect();
+    S.aspX=e.clientX-r.left-20;
+    const car=document.getElementById('asp-car');
+    if(car) car.style.left=S.aspX+'px';
+  });
+  S.gameTimer=setInterval(()=>{
+    if(S.gameActive!=='asphalt') return;
+    S.aspScore+=2;
+    const sc=document.getElementById('asp-score');
+    if(sc) sc.textContent=S.aspScore+' km/h';
+  },100);
+}
+
+/* Solitaire */
+function buildSolitaire(el){
+  const suits=['♠','♥','♦','♣'];
+  const vals=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const cards=[];
+  suits.forEach(s=>vals.slice(0,5).forEach(v=>cards.push({s,v,color:s==='♥'||s==='♦'?'#c0392b':'#000'})));
+  for(let i=cards.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]]; }
+  el.innerHTML=`<div class="sol-game">
+    <div class="sol-row">${cards.slice(0,5).map(c=>`<div class="sol-card" style="color:${c.color}" onclick="solClick(this)">${c.v}${c.s}</div>`).join('')}</div>
+    <div class="sol-row">${cards.slice(5,10).map(c=>`<div class="sol-card face-down" onclick="solFlip(this)">🂠</div>`).join('')}</div>
+    <div class="sol-row">${cards.slice(10,14).map(c=>`<div class="sol-card" style="color:${c.color}">${c.v}${c.s}</div>`).join('')}</div>
+    <div class="sol-hint">카드를 클릭해서 이동하세요</div>
+  </div>`;
+}
+function solClick(el){ el.style.transform=el.style.transform?'':'translateY(-12px)'; }
+function solFlip(el){ el.classList.remove('face-down'); el.textContent=['A♠','K♥','Q♦','J♣','10♠'][Math.floor(Math.random()*5)]; el.style.color=Math.random()>.5?'#c0392b':'#000'; }
+
+/* Minecraft */
+function buildMinecraft(el){
+  const blocks=['🌿','🟫','🪨','🌊','🌳','🌾','⛏️','🐄','🐑',''];
+  let html='';
+  for(let r=0;r<5;r++) for(let c=0;c<10;c++){
+    const b=blocks[Math.floor(Math.random()*blocks.length)];
+    html+=`<div class="mc-block" onclick="this.textContent=['💎','🏅','✨'][Math.floor(Math.random()*3)]" style="background:${['#228b22','#8B4513','#696969','#1E90FF','#228b22','#DAA520','#696969','#228b22','#c8c8c8','#87ceeb'][Math.floor(Math.random()*10)]}">${b}</div>`;
+  }
+  el.innerHTML=`<div class="mc-game">${html}<div style="position:absolute;bottom:8px;width:100%;text-align:center;font-size:12px;color:rgba(255,255,255,.8);">블록을 클릭해 채굴하세요</div></div>`;
+}
+
+function buildGenericGame(el,g){
+  el.style.background=g.bg;
+  el.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;">
+    <div style="font-size:80px;">${g.e}</div>
+    <div style="font-size:22px;font-weight:600;color:#fff;">${g.t}</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.6);">${g.g}</div>
+    <button style="margin-top:12px;padding:12px 28px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-size:15px;font-family:Inter,sans-serif;cursor:pointer;" onclick="log('sys','${g.t} 게임 시작')">게임 시작</button>
+  </div>`;
+}
+
+/* ══ TASK / CLICK LOGIC ══ */
+function handleItemClick(el, isTarget, label, action){
+  S.clicks++;
+  document.getElementById('m-c').textContent=S.clicks;
+  clearTimers();
+  addRipple(el, isTarget);
+  if(isTarget){
+    el.classList.add('correct-flash');
+    setTimeout(()=>el.classList.remove('correct-flash'),900);
+    action();
+    log('hit','HIT — '+label);
+    if(S.task<3 && !S.done[S.task]){ showToast('correct'); onHit(); }
+  } else {
+    S.misses++;
+    document.getElementById('m-m').textContent=S.misses;
+    action();
+    log('miss','MISS — '+label);
+    showToast('miss');
+    if(document.getElementById('t-auto').checked) startHes();
+  }
+}
+
+function addRipple(el, isTarget){
+  const r=document.createElement('div');
+  r.className='ripple '+(isTarget?'hit':'miss');
+  const rect=el.getBoundingClientRect();
+  const ca=document.getElementById('content-area').getBoundingClientRect();
+  r.style.left=(rect.left+rect.width/2-ca.left)+'px';
+  r.style.top=(rect.top+rect.height/2-ca.top)+'px';
+  document.getElementById('content-area').appendChild(r);
+  setTimeout(()=>r.remove(),650);
+}
+
+function onHit(){
+  const elapsed=((Date.now()-S.ts)/1000).toFixed(1);
+  document.getElementById('sov-h').textContent=['음악을 찾으셨어요!','영상을 찾으셨어요!','게임을 찾으셨어요!'][S.task];
+  document.getElementById('sov-s').textContent=elapsed+'초 소요';
+  document.getElementById('sov').classList.add('on');
+}
+
+function goNext(){
+  document.getElementById('sov').classList.remove('on');
+  dismissAI();
+  completeTask();
+}
+
+function completeTask(){
+  S.done[S.task]=true;
+  document.getElementById('rc-'+S.task).classList.add('done');
+  document.getElementById('rc-'+S.task).textContent='✓';
+  document.getElementById('rt-'+S.task).classList.add('done');
+  log('sys','태스크 완료 — '+((Date.now()-S.ts)/1000).toFixed(1)+'s');
+  if(S.done.every(Boolean)){ showFinal(); return; }
+  let next=(S.task+1)%3;
+  while(S.done[next]) next=(next+1)%3;
+  selectTask(next);
+}
+
+function showFinal(){
+  document.getElementById('f-c').textContent=S.clicks;
+  document.getElementById('f-m').textContent=S.misses;
+  document.getElementById('f-a').textContent=S.aiCount;
+  document.getElementById('f-t').textContent=((Date.now()-S.ss)/1000|0)+'s';
+  document.getElementById('fov').classList.add('on');
+  log('sys','세션 완료');
+}
+
+function restart(){
+  S={app:'music',task:0,variant:'A',ss:Date.now(),ts:Date.now(),clicks:0,misses:0,aiCount:0,done:[false,false,false],h3:null,h6:null,nowSong:0,playing:false,progSec:0,progTimer:null,vol:70,shuffle:false,repeat:false,liked:[],vidPlaying:false,vidSec:0,vidTimer:null,vidDur:1440,gameActive:null,gameTimer:null,cupX:280,cupHP:3,cupScore:0,cupKeys:{},aspX:290,aspScore:0,aspKeys:{}};
+  document.getElementById('fov').classList.remove('on');
+  document.getElementById('sov').classList.remove('on');
+  ['0','1','2'].forEach(i=>{
+    const rc=document.getElementById('rc-'+i); rc.classList.remove('done'); rc.textContent='';
+    document.getElementById('rt-'+i).classList.remove('done','active');
+  });
+  document.getElementById('rt-0').classList.add('active');
+  document.getElementById('m-c').textContent='0'; document.getElementById('m-m').textContent='0'; document.getElementById('m-a').textContent='0';
+  document.getElementById('rp-log').innerHTML='';
+  switchApp('music',document.getElementById('dock-music'));
+  updateDots(); log('sys','세션 재시작');
+  playSong(0);
+}
+
+/* ══ NAVIGATION ══ */
+function switchApp(app,btn){
+  S.app=app;
+  document.getElementById('app-music').style.display=app==='music'?'grid':'none';
+  document.getElementById('app-video').style.display=app==='video'?'flex':'none';
+  document.getElementById('app-game').style.display=app==='game'?'block':'none';
+  document.querySelectorAll('.dock-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setSubTab(btn){
+  document.querySelectorAll('.tb-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setVariant(v,btn){
+  S.variant=v;
+  document.querySelectorAll('.vp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  log('sys','Variant → '+v);
+}
+
+function selectTask(i){
+  S.task=i; S.ts=Date.now();
+  clearTimers(); dismissAI();
+  document.getElementById('sov').classList.remove('on');
+  document.querySelectorAll('.rp-task').forEach((el,j)=>{
+    el.classList.toggle('active',j===i); 
+  });
+  const apps=['music','video','game'];
+  switchApp(apps[i],document.getElementById('dock-'+apps[i]));
+  updateDots();
+  log('sys','태스크 '+(i+1)+' — '+['Mariah Carey','귀멸의칼날','Cuphead'][i]);
+  setTimeout(()=>showToast('welcome'), 600);
+  if(document.getElementById('t-auto').checked) startHes();
+}
+
+/* ══ AI TOAST ══ */
+const TOAST_DEFS = {
+  welcome:   {icon:'AI', label:'welcome',      dur:4000, msg:['음악 앱에서 Mariah Carey의 곡을 찾아 클릭해보세요!','영상 앱에서 귀멸의칼날을 찾아 클릭해보세요!','게임 앱에서 Cuphead를 찾아 클릭해보세요!']},
+  hesitate3: {icon:'⏳', label:'hesitate_3s',  dur:4000, msg:'잠깐 멈추셨네요. 화면을 천천히 살펴보세요.'},
+  hesitate6: {icon:'💡', label:'hesitate_6s',  dur:5000, msg:'찾기 어려우신가요? 파란 테두리 항목을 확인해보세요.'},
+  miss:      {icon:'✗',  label:'missclick',    dur:3500, msg:'살짝 빗나갔어요! 목표 항목을 다시 찾아보세요.'},
+  correct:   {icon:'✓',  label:'correct',      dur:5000, msg:['Mariah Carey 곡을 정확히 찾으셨어요! 다음 태스크로 넘어갑니다.','귀멸의칼날을 정확히 찾으셨어요! 다음 태스크로 넘어갑니다.','Cuphead를 정확히 찾으셨어요! 모든 태스크 완료!']},
+  userreq:   {icon:'?',  label:'user_request', dur:5000, msg:['플레이리스트에서 Mariah Carey를 찾아 클릭하세요.','카드 목록에서 귀멸의칼날을 찾아 클릭하세요.','게임 그리드에서 Cuphead를 찾아 클릭하세요.']},
+};
+
+let _toastId=0;
+
+function showToast(type){
+  if(!document.getElementById('t-dis').checked && type!=='correct' && type!=='welcome') return;
+  const def=TOAST_DEFS[type]; if(!def) return;
+  const msg=Array.isArray(def.msg)?def.msg[S.task]:def.msg;
+  const id='toast-'+(++_toastId);
+  const el=document.createElement('div');
+  el.className=`ai-toast t-${type}`;
+  el.id=id;
+  el.innerHTML=`
+    <div class="toast-icon">${def.icon}</div>
+    <div class="toast-body">
+      <div class="toast-trigger"><span class="toast-trigger-dot"></span>${def.label}</div>
+      <div class="toast-msg">${msg}</div>
+      <div class="toast-progress"><div class="toast-progress-fill" style="animation-duration:${def.dur}ms;color:${getToastColor(type)}"></div></div>
+    </div>
+    <button class="toast-close" onclick="removeToast('${id}')">✕</button>
+  `;
+  const stack=document.getElementById('toast-stack');
+  stack.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+  S.aiCount++; document.getElementById('m-a').textContent=S.aiCount;
+  log('ai','AI:'+def.label+' — '+msg.slice(0,24)+'…');
+  setTimeout(()=>removeToast(id), def.dur);
+}
+
+function getToastColor(type){
+  return {welcome:'var(--acc)',hesitate3:'var(--warn)',hesitate6:'var(--danger)',miss:'var(--danger)',correct:'var(--ok)',userreq:'var(--music)'}[type]||'var(--acc)';
+}
+
+function removeToast(id){
+  const el=document.getElementById(id); if(!el) return;
+  el.classList.remove('in'); el.classList.add('out');
+  setTimeout(()=>el.remove(),320);
+}
+
+function dismissAI(){ /* toast들은 자동 소멸 — 수동 닫기는 각 ✕ */ }
+
+function userAI(){
+  showToast('userreq');
+  log('ai','도움 요청');
+}
+
+function startHes(){
+  S.h3=setTimeout(()=>showToast('hesitate3'), 3000);
+  S.h6=setTimeout(()=>showToast('hesitate6'), 6000);
+}
+function clearTimers(){ clearTimeout(S.h3); clearTimeout(S.h6); }
+
+function onToggle(){
+  document.getElementById('ai-fab').style.display=document.getElementById('t-fab').checked?'':'none';
+  if(!document.getElementById('t-auto').checked) clearTimers();
+}
+
+/* ══ DOTS ══ */
+function updateDots(){
+  const c=document.getElementById('step-pips'); c.innerHTML='';
+  const total=[3,3,3][S.task];
+  for(let i=0;i<total;i++){
+    const d=document.createElement('div'); d.className='spip'+(i===S.task?'active':'');
+    c.appendChild(d);
+  }
+}
+
+/* ══ LOG ══ */
+function log(type,msg){
+  const s=((Date.now()-S.ss)/1000).toFixed(1);
+  const ll=document.getElementById('rp-log');
+  const r=document.createElement('div'); r.className='log-r';
+  r.innerHTML=`<span class="log-ts">${s}s</span><div class="log-dot ${type}"></div><div class="log-m">${msg}</div>`;
+  ll.appendChild(r); ll.scrollTop=ll.scrollHeight;
+}
+
+init();
+playSong(0);
+setTimeout(()=>showToast('welcome'), 800);
+</script>
+</body>
+</html>
