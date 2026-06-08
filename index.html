@@ -752,7 +752,8 @@ function buildMusicQueue(){
       <span class="song-dur">${fmt(s.dur)}</span>`;
     d.addEventListener('click',(e)=>{
       if(e.target.classList.contains('song-heart')) return;
-      handleItemClick(d,s.TARGET,'노래: '+s.t,()=>playSong(i));
+      const isResearchTarget = (S.task===0 && !S.done[0] && s.TARGET===true);
+      handleItemClick(d, isResearchTarget, '노래: '+s.t, ()=>playSong(i)); // 음악은 재생해도 OK
     });
     el.appendChild(d);
   });
@@ -862,7 +863,16 @@ function buildVideoSections(){
           <div class="vcard-sub">${item.s}</div>
           ${item.prog>0?`<div class="vcard-prog"><div class="vcard-prog-fill" style="width:${item.prog}%"></div></div>`:''}
         </div>`;
-      c.addEventListener('click',()=>handleItemClick(c,item.TARGET,'영상: '+item.t,()=>openVideoPlayer(item)));
+      c.addEventListener('click',()=>{
+        const isResearchTarget = (S.task===1 && !S.done[1] && item.TARGET===true);
+        if(isResearchTarget){
+          // 타겟 찾음 — 플레이어 열지 않고 정답만 처리
+          handleItemClick(c, true, '영상: '+item.t, ()=>{});
+        } else {
+          // 타겟 아닌 카드 — 그냥 플레이어 열기
+          handleItemClick(c, false, '영상: '+item.t, ()=>openVideoPlayer(item));
+        }
+      });
       vrow.appendChild(c);
     });
     sec.appendChild(vrow);
@@ -919,10 +929,18 @@ function buildGameGrid(){
   GAMES.forEach(g=>{
     const c=document.createElement('div');
     c.className='gcard'+(g.TARGET?' target-item':'');
-    c.dataset.target=g.TARGET||false;
     c.innerHTML=`<div class="gcard-art" style="background:${g.bg}">${g.e}</div>
       <div class="gcard-info"><div class="gcard-title">${g.t}</div><div class="gcard-genre">${g.g}</div><div class="gcard-stars">${g.stars}</div></div>`;
-    c.addEventListener('click',()=>handleItemClick(c,g.TARGET,'게임: '+g.t,()=>openGame(g)));
+    c.addEventListener('click',()=>{
+      const isResearchTarget = (S.task===2 && !S.done[2] && g.TARGET===true);
+      if(isResearchTarget){
+        // 타겟 찾음 — 게임 모달 열지 않고 정답만 처리
+        handleItemClick(c, true, '게임: '+g.t, ()=>{});
+      } else {
+        // 타겟 아닌 카드 — 그냥 게임 열기
+        handleItemClick(c, false, '게임: '+g.t, ()=>openGame(g));
+      }
+    });
     el.appendChild(c);
   });
 }
@@ -1106,8 +1124,21 @@ function onHit(){
 }
 
 function goNext(){
+  // 1. success overlay 닫기
   document.getElementById('sov').classList.remove('on');
   dismissAI();
+  // 2. 영상 플레이어 강제 닫기
+  document.getElementById('video-player').classList.remove('on');
+  document.getElementById('video-browse').style.display='';
+  S.vidPlaying=false; clearInterval(S.vidTimer);
+  // 3. 게임 모달 강제 닫기
+  document.getElementById('game-modal').classList.remove('on');
+  S.gameActive=null; clearInterval(S.gameTimer);
+  // 4. 모든 앱 패널 숨기기 — switchApp이 다시 열어줌
+  document.getElementById('app-music').style.display='none';
+  document.getElementById('app-video').style.display='none';
+  document.getElementById('app-game').style.display='none';
+  // 5. 다음 태스크로
   completeTask();
 }
 
