@@ -252,8 +252,8 @@ html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Inter',sans-se
 .ai-x{width:26px;height:26px;border-radius:50%;background:var(--s2);border:none;color:var(--t2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
 .ai-x:hover{background:var(--s3);color:var(--t1);}
 .ai-x.hidden{display:none;}
-.ai-fab{position:absolute;bottom:20px;right:22px;background:rgba(17,17,19,.95);border:1px solid var(--b2);border-radius:22px;padding:10px 18px;font-size:13px;color:var(--t2);font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;z-index:15;backdrop-filter:blur(8px);}
-.ai-fab:hover{border-color:var(--acc);color:var(--t1);}
+.ai-fab{position:absolute;bottom:20px;right:22px;background:rgba(10,132,255,.15);border:1.5px solid var(--acc);border-radius:22px;padding:11px 20px;font-size:13px;color:var(--t1);font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;z-index:25;backdrop-filter:blur(8px);font-weight:500;}
+.ai-fab:hover{background:rgba(10,132,255,.25);border-color:var(--acc);}
 .ai-fab-d{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:blink 2.5s ease-in-out infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
@@ -443,6 +443,9 @@ html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Inter',sans-se
     <button class="tb-tab" onclick="setSubTab(this)">최근 재생</button>
     <button class="tb-tab" onclick="setSubTab(this)">즐겨찾기</button>
     <button class="tb-tab" onclick="setSubTab(this)">추천</button>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+      <div style="font-size:13px;color:var(--t2);" id="task-instr">← 왼쪽에서 태스크를 선택하세요</div>
+    </div>
     <div class="tb-right">
       <div class="step-pips" id="step-pips"></div>
       <div class="vpill">
@@ -594,7 +597,10 @@ html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Inter',sans-se
       <div class="success-ring"><svg viewBox="0 0 38 38"><polyline points="7,19 15,27 31,11"/></svg></div>
       <div class="sov-h" id="sov-h">찾으셨어요!</div>
       <div class="sov-s" id="sov-s"></div>
-      <button class="next-btn" onclick="goNext()">다음 태스크 →</button>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button onclick="cancelHit()" style="padding:13px 24px;border-radius:24px;border:1px solid rgba(255,255,255,.2);background:none;color:rgba(255,255,255,.6);font-size:14px;font-family:Inter,sans-serif;cursor:pointer;">← 잘못 눌렀어요</button>
+        <button class="next-btn" onclick="goNext()">다음 태스크 →</button>
+      </div>
     </div>
 
     <!-- Final overlay -->
@@ -645,7 +651,7 @@ html,body{width:1920px;height:1080px;overflow:hidden;font-family:'Inter',sans-se
   </div>
   <div class="rp-ai" style="border-top:none;border-bottom:1px solid var(--b1);order:-1;">
     <div class="rp-ai-title" style="color:var(--acc);">⚙ AI 설정</div>
-    <div class="tog-row"><span class="tog-lbl">자동 힌트 (3초/6초)</span><label class="tog"><input type="checkbox" id="t-auto" onchange="onToggle()"><div class="tog-t"></div></label></div>
+    <div class="tog-row"><span class="tog-lbl">자동 힌트 (5초/10초)</span><label class="tog"><input type="checkbox" id="t-auto" checked onchange="onToggle()"><div class="tog-t"></div></label></div>
     <div class="tog-row"><span class="tog-lbl">AI 토스트 표시</span><label class="tog"><input type="checkbox" id="t-dis" checked onchange="onToggle()"><div class="tog-t"></div></label></div>
     <div class="tog-row"><span class="tog-lbl">도움 요청 버튼</span><label class="tog"><input type="checkbox" id="t-fab" checked onchange="onToggle()"><div class="tog-t"></div></label></div>
   </div>
@@ -1122,7 +1128,7 @@ function handleItemClick(el, isTarget, label, action){
     action();
     log('miss','MISS — '+label);
     showToast('miss');
-    if(document.getElementById('t-auto').checked) startHes();
+    startHes();
   }
 }
 
@@ -1142,6 +1148,14 @@ function onHit(){
   document.getElementById('sov-h').textContent=['음악을 찾으셨어요!','영상을 찾으셨어요!','게임을 찾으셨어요!'][S.task];
   document.getElementById('sov-s').textContent=elapsed+'초 소요';
   document.getElementById('sov').classList.add('on');
+}
+
+function cancelHit(){
+  document.getElementById('sov').classList.remove('on');
+  // 타이머 재시작
+  clearTimers();
+  startHes();
+  log('sys','다시 탐색 — 취소');
 }
 
 function goNext(){
@@ -1243,8 +1257,11 @@ function selectTask(i){
   switchApp(apps[i],document.getElementById('dock-'+apps[i]));
   updateDots();
   log('sys','태스크 '+(i+1)+' — '+['Mariah Carey','귀멸의칼날','Cuphead'][i]);
+  const instrMsgs=['🎵 음악 앱에서 Mariah Carey — All I Want for Christmas Is You 를 찾아 클릭하세요','🎬 영상 앱에서 귀멸의칼날 을 찾아 클릭하세요','🎮 게임 앱에서 Cuphead 를 찾아 클릭하세요'];
+  document.getElementById('task-instr').textContent=instrMsgs[i];
+  document.getElementById('task-instr').style.color='var(--t1)';
   setTimeout(()=>showToast('welcome'), 600);
-  if(document.getElementById('t-auto').checked) startHes();
+  startHes();
   showTaskBanner(i);
 }
 
@@ -1252,8 +1269,8 @@ function selectTask(i){
 const TOAST_DEFS = {
   eunotice:  {icon:'🇪🇺', label:'EU AI Act Art.50 — AI 시스템 고지', dur:6000, msg:'이 시스템은 AI가 사용자 행동을 분석합니다. 클릭 좌표·체류시간을 수집하여 실시간 가이드를 제공합니다. (EU AI Act Art.50 준수)'},
   welcome:   {icon:'AI', label:'AI 가이드 활성화 (Art.13)',  dur:5000, msg:['[태스크 1/3] 음악 앱에서 Mariah Carey의 곡을 찾아 클릭해보세요!','[태스크 2/3] 영상 앱에서 귀멸의칼날을 찾아 클릭해보세요!','[태스크 3/3] 게임 앱에서 Cuphead를 찾아 클릭해보세요!']},
-  hesitate3: {icon:'⏳', label:'3초 머뭇거림 감지', dur:4000, msg:'잠깐 멈추셨네요. 화면을 천천히 살펴보세요.'},
-  hesitate6: {icon:'💡', label:'6초 머뭇거림 감지', dur:5000, msg:'찾기 어려우신가요? 파란 테두리 항목을 확인해보세요.'},
+  hesitate3: {icon:'⏳', label:'5초 머뭇거림 감지', dur:4000, msg:'잠깐 멈추셨네요. 화면을 천천히 살펴보세요.'},
+  hesitate6: {icon:'💡', label:'10초 머뭇거림 감지', dur:5000, msg:'찾기 어려우신가요? 파란 테두리 항목을 확인해보세요.'},
   miss:      {icon:'✗',  label:'잘못된 위치 클릭 감지',  dur:3500, msg:'살짝 빗나갔어요! 목표 항목을 다시 찾아보세요. (클릭 좌표 기록됨)'},
   correct:   {icon:'✓',  label:'목표 항목 발견',    dur:5000, msg:['Mariah Carey 곡을 정확히 찾으셨어요! 다음 태스크로 넘어갑니다.','귀멸의칼날을 정확히 찾으셨어요! 다음 태스크로 넘어갑니다.','Cuphead를 정확히 찾으셨어요! 모든 태스크 완료!']},
   userreq:   {icon:'?',  label:'도움 요청',          dur:5000, msg:['플레이리스트에서 Mariah Carey를 찾아 클릭하세요.','카드 목록에서 귀멸의칼날을 찾아 클릭하세요.','게임 그리드에서 Cuphead를 찾아 클릭하세요.']},
@@ -1304,8 +1321,8 @@ function userAI(){
 }
 
 function startHes(){
-  S.h3=setTimeout(()=>showToast('hesitate3'), 3000);
-  S.h6=setTimeout(()=>showToast('hesitate6'), 6000);
+  S.h3=setTimeout(()=>showToast('hesitate3'), 5000);
+  S.h6=setTimeout(()=>showToast('hesitate6'), 10000);
 }
 function clearTimers(){ clearTimeout(S.h3); clearTimeout(S.h6); }
 
@@ -1335,38 +1352,10 @@ function log(type,msg){
 
 init();
 playSong(0);
-setTimeout(()=>showToast('eunotice'), 800);
+// 처음 로드 시 순서대로: EU고지 → 태스크0 자동 선택(welcome+머뭇거림 타이머)
+setTimeout(()=>showToast('eunotice'), 500);
+setTimeout(()=>selectTask(0), 1200);
 </script>
 
-    <div class="intro-title">AI 기반 UX 리서치 시뮬레이터</div>
-    <div class="intro-desc">
-      이 프로토타입은 사용자의 클릭 행동을 실시간으로 분석하여
-      AI가 상황에 맞는 가이드를 제공합니다.<br>
-      아래 조건에서 AI가 자동으로 개입합니다.
-    </div>
-    <div class="intro-items">
-      <div class="intro-item">
-        <div class="intro-item-icon">👋</div>
-        <div><div class="intro-item-title">화면 진입</div><div class="intro-item-desc">태스크 시작 시 AI가 목표를 안내합니다</div></div>
-      </div>
-      <div class="intro-item">
-        <div class="intro-item-icon">⏳</div>
-        <div><div class="intro-item-title">3초 머뭇거림 감지</div><div class="intro-item-desc">3초 동안 클릭이 없으면 탐색 힌트를 제공합니다</div></div>
-      </div>
-      <div class="intro-item">
-        <div class="intro-item-icon">💡</div>
-        <div><div class="intro-item-title">6초 머뭇거림 감지</div><div class="intro-item-desc">6초 경과 시 목표 항목의 위치를 강조합니다</div></div>
-      </div>
-      <div class="intro-item">
-        <div class="intro-item-icon">✗</div>
-        <div><div class="intro-item-title">잘못된 위치 클릭</div><div class="intro-item-desc">목표 외 영역 클릭 시 재시도를 안내합니다</div></div>
-      </div>
-    </div>
-    <div class="intro-notice">
-      ※ 우측 패널 'AI 설정'에서 자동 힌트 및 토스트 표시 여부를 조절할 수 있습니다
-    </div>
-    <button class="intro-start" onclick="closeIntroModal()">시작하기 →</button>
-  </div>
-</div>
 </body>
 </html>
